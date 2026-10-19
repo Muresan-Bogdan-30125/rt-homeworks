@@ -4,19 +4,6 @@ import java.util.concurrent.BlockingQueue;
 
 /**
  * TASK APERIODIC: execută comenzile primite de la business service.
- *
- * Comenzile sosesc oricând, pe MQTT, fără un interval minim între ele, și sunt
- * puse în coada commands. Fiecare comandă eliberează un job al taskului.
- * Comenzi care trebuie suportate:
- *
- *   SET_INTERVAL <ms>       schimbă perioada T a taskului periodic
- *   SET_THRESHOLD <valoare> schimbă pragul de alarmă
- *   RESET                   readuce senzorul la valoarea inițială
- *   STATUS                  raportează perioada și pragul curente
- *
- * După executarea fiecărei comenzi, device-ul publică pe Config.statusTopic(deviceId)
- * o confirmare: "deviceId;timestamp;text", de exemplu
- * "device-1;1727600000000;OK SET_INTERVAL 1000".
  */
 public class AperiodicCommandTask implements Runnable {
 
@@ -37,14 +24,62 @@ public class AperiodicCommandTask implements Runnable {
 
     @Override
     public void run() {
-        // TODO 3: implementați taskul aperiodic:
-        //   - preluați comenzile din coadă: commands.take()
-        //   - separați numele comenzii de parametru: command.split(" ")
-        //   - executați comanda (periodic.setPeriodMs(...), sensor.reset() etc.)
-        //   - publicați confirmarea pe Config.statusTopic(deviceId)
-        //   - o comandă necunoscută sau un parametru invalid nu trebuie să
-        //     oprească taskul: publicați "ERROR <motiv>"
-        //
-        // Vezi exemplul exemple/01-taskuri/.../AperiodicTaskExample.java
+        try {
+            while (!Thread.currentThread().isInterrupted()) {
+                // Preluăm comanda din coadă (blocant)
+                String commandStr = commands.take();
+                long timestamp = System.currentTimeMillis();
+                String responseText;
+
+                try {
+                    String[] parts = commandStr.trim().split("\\s+", 2);
+                    String action = parts[0].toUpperCase();
+                    String param = parts.length > 1 ? parts[1] : "";
+
+                    switch (action) {
+                        case "SET_INTERVAL":
+                            if (param.isEmpty()) {
+                                throw new IllegalArgumentException("Parametru lipsă pentru SET_INTERVAL");
+                            }
+                            long newPeriod = Long.parseLong(param);
+                            periodic.setPeriodMs(newPeriod);
+                            responseText = "OK " + commandStr;
+                            break;
+
+                        case "SET_THRESHOLD":
+                            if (param.isEmpty()) {
+                                throw new IllegalArgumentException("Parametru lipsă pentru SET_THRESHOLD");
+                            }
+                            double newThreshold = Double.parseDouble(param);
+                            periodic.setThreshold(newThreshold);
+                            responseText = "OK " + commandStr;
+                            break;
+
+                        case "RESET":
+                            sensor.reset();
+                            responseText = "OK " + commandStr;
+                            break;
+
+                        case "STATUS":
+                            responseText = "OK STATUS period=" + periodic.getPeriodMs() + ", threshold=" + periodic.getThreshold();
+                            break;
+
+                        default:
+                            responseText = "ERROR Comandă necunoscută: " + action;
+                            break;
+                    }
+                } catch (Exception e) {
+                    // O comandă invalidă sau eroare de parsare nu oprește taskul
+                    responseText = "ERROR " + e.getMessage();
+                }
+
+                // Publicăm confirmarea sau eroarea pe topicul de status
+                String statusTopic = Config.statusTopic(deviceId);
+                String payload = deviceId + ";" + timestamp + ";" + responseText;
+                mqtt.publish(statusTopic, payload);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
     }
 }

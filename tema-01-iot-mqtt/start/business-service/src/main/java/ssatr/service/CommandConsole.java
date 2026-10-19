@@ -4,12 +4,6 @@ import java.util.Scanner;
 
 /**
  * Consola operatorului: citește comenzi de la tastatură.
- *
- *   show                               afișează dashboard-ul
- *   <deviceId> <COMANDA> [parametru]   trimite o comandă unui device, de exemplu
- *                                      device-1 SET_INTERVAL 1000
- *   help                               afișează comenzile
- *   exit                               oprește serviciul
  */
 public class CommandConsole implements Runnable {
 
@@ -44,11 +38,20 @@ public class CommandConsole implements Runnable {
     }
 
     private void sendCommand(String line) {
-        // TODO 6: separați deviceId de restul liniei
-        //   ("device-1 SET_INTERVAL 1000" -> "device-1" și "SET_INTERVAL 1000")
-        //   și publicați comanda pe Config.commandTopic(deviceId).
-        //   Afișați un mesaj de eroare dacă linia nu are formatul corect.
-        System.out.println("(trimiterea comenzilor neimplementată): " + line);
+        // TODO 6: separăm deviceId de restul liniei ("device-1 SET_INTERVAL 1000" -> "device-1" și "SET_INTERVAL 1000")
+        String[] parts = line.split("\\s+", 2);
+        if (parts.length < 2) {
+            System.out.println("Eroare: Format invalid. Utilizare: <deviceId> <COMANDĂ> [parametru]");
+            return;
+        }
+
+        String deviceId = parts[0];
+        String commandPayload = parts[1];
+
+        // Publicăm comanda pe topicul dedicat dispozitivului
+        String topic = Config.commandTopic(deviceId);
+        mqtt.publish(topic, commandPayload);
+        System.out.println("Trimis pe " + topic + " -> " + commandPayload);
     }
 
     private void printHelp() {
