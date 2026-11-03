@@ -17,7 +17,11 @@ const char* const BROKER_URI = "mqtt://control.aut.utcluj.ro:11188";
 // serverul de la care placa ia ora exactă (SNTP), pentru timestamp-uri
 const char* const NTP_SERVER = "pool.ntp.org";
 
+<<<<<<< HEAD
 const char* const STUDENT = "muresan-bogdan";
+=======
+const char* const STUDENT = "popescu-ion";
+>>>>>>> 58ac9623f14d8d09fe205def8554a934697ddac3
 
 // ID-ul device-ului, folosit în topic-uri și în mesaje: "esp32-" urmat de
 // ultimele 6 cifre hexa ale adresei MAC a plăcii, de exemplu "esp32-a1b2c3".

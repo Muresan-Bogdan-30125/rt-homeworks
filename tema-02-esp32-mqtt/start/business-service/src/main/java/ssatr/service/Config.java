@@ -10,7 +10,11 @@ public class Config {
 
     public static final String BROKER = "tcp://control.aut.utcluj.ro:11188";
 
+<<<<<<< HEAD
     public static final String STUDENT = "muresan-bogdan";
+=======
+    public static final String STUDENT = "popescu-ion";
+>>>>>>> 58ac9623f14d8d09fe205def8554a934697ddac3
 
     private static final String DEVICES = "ssatr/" + STUDENT + "/devices/";
 
